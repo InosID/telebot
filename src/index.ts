@@ -1,7 +1,10 @@
+import '../settings';
 import fs from 'fs';
 import path from 'path';
 import { parseOptions } from "./Utils";
 import { Attribute, Command } from './Types';
+import { Context, Telegraf } from 'telegraf';
+import { Update } from 'telegraf/typings/core/types/typegram';
 
 const attr: Attribute = {
   uptime: new Date(),
@@ -63,3 +66,23 @@ const attr: Attribute = {
     console.error("Error: ", error);
   }
 })('../commands');
+
+const TOKEN = process.env.TOKEN ? process.env.TOKEN : ""
+const bot = new Telegraf<Context<Update>>(TOKEN)
+
+function connect() {
+  bot.on("callback_query", function(m) {
+    require('./Handlers/callback')(m, bot, attr)
+  })
+  bot.on("message", function(m) {
+    console.log(m)
+  })
+  bot.launch({
+    dropPendingUpdates: true,
+  })
+}
+
+connect()
+
+process.once('SIGINT', () => bot.stop('SIGINT'))
+process.once('SIGTERM', () => bot.stop('SIGTERM'))
