@@ -1,35 +1,39 @@
-import '../../settings';
+export default async function handler(message: any, connection: any, commandMap: any): Promise<void> {
+  const data = message.callbackQuery.data;
+  const isCommand: boolean = /^[°•π÷×¶∆£¢€¥®™�✓_=|~!?#/$%^&.+-,\\\©^]/.test(data);
+  const prefix: string = isCommand ? data[0] : "";
+  const cleanData: string = data.replace(prefix, "");
+  const query: string = cleanData.trim().split(/ +/).slice(1).join(" ");
 
-export default async function callback(m: any, bot: any, attr: any): Promise<void> {
-  const message: string = m.callbackQuery.data;
-  const isMultiPrefix: boolean = !!process.env.MULTI_PREFIX?.match(/(true|y(es)?|ya)/i);
-  let isCommand: boolean;
+  const commandName: string = data
+    .replace(prefix, "")
+    .trim()
+    .split(/ +/)
+    .shift()
+    .toLowerCase();
 
-  if (isMultiPrefix) {
-    isCommand = /^[°•π÷×¶∆£¢€¥®™�✓_=|~!?#/$%^&.+-,\\\©^]/.test(message);
-  } else {
-    const prefix: string = process.env.PREFIX || '';
-    isCommand = message.startsWith(prefix);
-  }
-
-  const prefixLength: number = isCommand ? 1 : 0;
-  const commandWithoutPrefix: string = message.slice(prefixLength).trim();
-  const [cmdName, ...args]: string[] = commandWithoutPrefix.split(/\s+/).map(arg => arg.toLowerCase());
-  
-  const command = 
-    attr.command.get(cmdName) ||
-    [...attr.command.values()].find(cmd => cmd.alias.includes(cmdName));
-
-  if (!command) return;
-
-  const options = command.options;
-  
-  try {
-    await command.run(
-      { m, bot },
-      { query: args.join(' ') } // Changed to join args with space
+  const cmd =
+    commandMap.telegram.get(data.trim().split(/ +/).shift().toLowerCase()) ||
+    [...commandMap.telegram.values()].find((cmd: any) =>
+      cmd.alias.find(
+        (alias: string) => alias.toLowerCase() == data.trim().split(/ +/).shift().toLowerCase()
+      )
+    ) ||
+    commandMap.telegram.get(commandName) ||
+    [...commandMap.telegram.values()].find((cmd: any) =>
+      cmd.alias.find((alias: string) => alias.toLowerCase() == commandName)
     );
-  } catch (e) {
-    console.error(e);
+
+  if (!cmd) return;
+  // let options: any = cmd.options;
+  try {
+    await cmd.run(
+      { message, connection },
+      {
+        query,
+      }
+    );
+  } catch (error) {
+    console.log(error);
   }
 }
