@@ -72,10 +72,10 @@ const bot = new Telegraf<Context<Update>>(TOKEN)
 
 function connect() {
   bot.on("callback_query", function(m) {
-    require('./Handlers/callback')(m, bot, attr)
+    require('./Handlers').Callback(m, bot, attr)
   })
   bot.on("message", function(m) {
-    console.log(m)
+    require('./Handlers').Message(m, bot, attr)
   })
   bot.launch({
     dropPendingUpdates: true,
