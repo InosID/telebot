@@ -28,7 +28,7 @@ interface Command {
 
 const commands = global.attr;
 
-export default async function handleMessage(m: { message: Message }, bot: Bot, attr: Attributes): Promise<void> {
+export default async function Message(m: { message: Message }, bot: Bot, attr: Attributes): Promise<void> {
   const message: string = (m.message?.text || m.message?.caption || '') as string;
   const isMultiPrefix: boolean = !!process.env.MULTI_PREFIX?.match(/true|ya|y(es)?/);
   const prefix: string = isMultiPrefix ? (message.match(/^[°•π÷×¶∆£¢€¥®™�✓_=|~!?#/$%^&.+-,\\\©^]/gi) ?? ['-'])[0] : process.env.PREFIX ?? '-';
