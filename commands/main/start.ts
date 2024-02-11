@@ -1,7 +1,9 @@
 export default {
   name: "start",
-  alias: ["menu"],
+  alias: ["menu", "allmenu"],
+  category: "main",
+  example: "",
   async run({ m }: { m: any }) {
-    m.reply('Hiii')
+    m.reply('Hiii') // test
   }
 };
