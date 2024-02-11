@@ -1,4 +1,4 @@
-import Callback from "./Callback";
+import Callback from "./callback";
 import Message from "./Message";
 
 export {
