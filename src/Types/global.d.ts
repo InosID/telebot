@@ -1,5 +1,12 @@
-declare global {
-  function reloadFile(file?: string): void
+interface Command {
+  [key: string]: any;
 }
 
-export {};
+declare global {
+  var attr: {
+    [key: string]: Command;
+  };
+  function reloadFile(file?: string): void;
+}
+
+export { Command };

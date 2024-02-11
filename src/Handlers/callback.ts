@@ -1,34 +1,36 @@
 import '../../settings';
 
-export default async function Callback(m: any, bot: any, commandMap: Map<string, any>): Promise<void> {
+interface Message {
+  callbackQuery: {
+    data: string;
+  };
+}
+
+interface Bot {
+  [key: string]: any; // Define bot object properties as needed
+}
+
+interface Command {
+  run: (context: { m: Message; bot: Bot }, attributes: { query: string }) => Promise<void>;
+  alias: string[];
+}
+
+export default async function Callback(m: { callbackQuery: { data: string } }, bot: Bot, commandMap: Map<string, Command>): Promise<void> {
   const data: string = m.callbackQuery.data;
   const isMultiPrefix: boolean = !!process.env.MULTI_PREFIX?.match(/true|ya|y(es)?/);
-  let isCommand: boolean;
-
-  if (isMultiPrefix) {
-    isCommand = /^[°•π÷×¶∆£¢€¥®™�✓_=|~!?#/$%^&.+-,\\\©^]/.test(data);
-  } else {
-    isCommand = !!process.env.PREFIX;
-  }
-
-  const prefix: string = isCommand && isMultiPrefix ? data[0] : process.env.PREFIX || '';
+  const prefix: string = isMultiPrefix ? data[0] : process.env.PREFIX || '';
   const cleanData: string = data.replace(prefix, '');
   const query: string = cleanData.trim().split(/ +/).slice(1).join(' ');
+  const commandName: string | undefined = cleanData.trim().split(/ +/).shift()?.toLowerCase();
 
-  const commandName: string = data
-    .replace(prefix, '')
-    .trim()
-    .split(/ +/)
-    .shift()?.toLowerCase() || '';
-
-  const cmd =
-    commandMap.get(data.trim().split(/ +/).shift()?.toLowerCase() || '') ||
-    [...commandMap.values()].find((cmd: any) =>
-      cmd.alias.find((alias: string) => alias.toLowerCase() == data.trim().split(/ +/).shift()?.toLowerCase() || '')
+  const cmd: Command | undefined =
+    commandMap.get(commandName || '') ||
+    [...commandMap.values()].find((cmd: Command) =>
+      cmd.alias.find((alias: string) => alias.toLowerCase() === commandName)
     ) ||
-    commandMap.get(commandName) ||
-    [...commandMap.values()].find((cmd: any) =>
-      cmd.alias.find((alias: string) => alias.toLowerCase() == commandName)
+    commandMap.get(data.trim().split(/ +/).shift()?.toLowerCase() || '') ||
+    [...commandMap.values()].find((cmd: Command) =>
+      cmd.alias.find((alias: string) => alias.toLowerCase() === data.trim().split(/ +/).shift()?.toLowerCase() || '')
     );
 
   if (!cmd) return;
@@ -36,11 +38,9 @@ export default async function Callback(m: any, bot: any, commandMap: Map<string,
   try {
     await cmd.run(
       { m, bot },
-      {
-        query,
-      }
+      { query }
     );
   } catch (error) {
-    console.log(error);
+    console.error(error);
   }
 }

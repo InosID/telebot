@@ -1,13 +1,19 @@
 import fs from 'fs';
 
-global.reloadFile = function(file: string = '') {
+declare global {
+  interface Global {
+    reloadFile: (file?: string) => void;
+  }
+}
+
+global.reloadFile = function(file: string = ''): void {
   nocache(file, () => {
     console.log(`File "${file}" has been updated!\nRestarting!`);
     process.send?.("reset");
   });
 };
 
-function nocache(module: string, cb: (module: string) => void = () => {}) {
+function nocache(module: string, cb: (module: string) => void = () => {}): void {
   fs.watchFile(require.resolve(module), async () => {
     await uncache(require.resolve(module));
     cb(module);

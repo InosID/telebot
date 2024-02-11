@@ -1,88 +1,54 @@
 import '../settings';
 import fs from 'fs';
 import path from 'path';
-import { parseOptions } from "./Utils";
-import { Attribute, Command } from './Types';
 import { Context, Telegraf } from 'telegraf';
 import { Update } from 'telegraf/typings/core/types/typegram';
+import { Command } from './Types/global';
 
-const attr: Attribute = {
-  uptime: new Date(),
-  command: new Map<string, Command>()
-};
+global.attr = {};
 
-(async function(directory: string): Promise<void> {
-  try {
-    const pathDir = path.join(__dirname, directory);
-    const features = fs.readdirSync(pathDir);
-    console.log("Loading... Please wait while the system checks the commands.");
-    for (const feature of features) {
-      const commands = fs.readdirSync(path.join(pathDir, feature)).filter((file) => file.endsWith(".js"));
-      for (const file of commands) {
-        const command: Command = require(path.join(pathDir, feature, file));
-        if (typeof command.run !== "function") continue;
-        const defaultCmdOptions = {
-          name: "command",
-          alias: [""],
-          desc: "",
-          use: "",
-          example: "",
-          url: "",
-          category: command.category === undefined ? "" : feature.toLowerCase(),
-          wait: false,
-          isOwner: false,
-          isAdmin: false,
-          isQuoted: false,
-          isGroup: false,
-          isBotAdmin: false,
-          isQuery: false,
-          isPrivate: false,
-          isUrl: false,
-          run: () => {},
-        };
-        const cmdOptions = parseOptions(defaultCmdOptions, command);
-        const options = Object.fromEntries(
-          Object.entries(cmdOptions)
-            .filter(([k, v]) => typeof v === "boolean" || k === "query" || k === "isMedia")
-        );
-        const cmdObject: Command = {
-          name: cmdOptions.name,
-          alias: cmdOptions.alias,
-          desc: cmdOptions.desc,
-          use: cmdOptions.use,
-          type: cmdOptions.type || "",
-          example: cmdOptions.example,
-          url: cmdOptions.url,
-          category: cmdOptions.category,
-          options,
-          run: cmdOptions.run,
-        };
-        attr.command.set(cmdOptions.name, cmdObject);
-        global.reloadFile(`./${directory}/${feature}/${file}`);
+async function loadCommands(): Promise<void> {
+  const commandsPath = "./commands";
+  const plugins = fs.readdirSync(commandsPath);
+  for (const plugin of plugins) {
+    if (!/\.js$/g.test(plugin)) {
+      const commandFiles = fs
+        .readdirSync(path.join(commandsPath, plugin))
+        .filter((file) => file.endsWith(".js"));
+      for (const filename of commandFiles) {
+        const pathFiles = path.join(commandsPath, plugin, filename);
+        try {
+          const commandModule = await import(`../${pathFiles}`);
+          const command: Command = commandModule.default;
+          global.attr[`${filename.replace('.js', '')}`] = command;
+        } catch (error: any) {
+          console.error(
+            `Error loading command file ${pathFiles}: ${error.message}`
+          );
+        }
       }
     }
-    console.log("Loading... Command loaded successfully.");
-  } catch (error) {
-    console.error("Error: ", error);
   }
-})('../commands');
-
-const TOKEN = process.env.TOKEN ? process.env.TOKEN : ""
-const bot = new Telegraf<Context<Update>>(TOKEN)
-
-function connect() {
-  bot.on("callback_query", function(m) {
-    require('./Handlers').Callback(m, bot, attr)
-  })
-  bot.on("message", function(m) {
-    require('./Handlers').Message(m, bot, attr)
-  })
-  bot.launch({
-    dropPendingUpdates: true,
-  })
 }
 
-connect()
+loadCommands();
 
-process.once('SIGINT', () => bot.stop('SIGINT'))
-process.once('SIGTERM', () => bot.stop('SIGTERM'))
+const TOKEN: string = process.env.TOKEN || "";
+const bot: Telegraf<Context<Update>> = new Telegraf<Context<Update>>(TOKEN);
+
+function connect(): void {
+  bot.on("callback_query", function(m) {
+    require('./Handlers').Callback(m, bot, global.attr);
+  });
+  bot.on("message", function(m) {
+    require('./Handlers').Message(m, bot, global.attr);
+  });
+  bot.launch({
+    dropPendingUpdates: true,
+  });
+}
+
+connect();
+
+process.once('SIGINT', () => bot.stop('SIGINT'));
+process.once('SIGTERM', () => bot.stop('SIGTERM'));

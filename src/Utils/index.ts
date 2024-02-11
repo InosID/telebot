@@ -1,3 +1,7 @@
+import findCommand from './findCommand';
 import parseOptions from './parseOptions';
 
-export { parseOptions };
+export {
+  findCommand,
+  parseOptions
+};

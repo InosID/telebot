@@ -1,19 +1,19 @@
 console.log('Starting...');
-import { spawn } from 'child_process';
+import { spawn, ChildProcess } from 'child_process';
 import * as path from 'path';
 
-let isProcessRunning = false;
+let isProcessRunning: boolean = false;
 
 function startProcess(fileToStart: string): void {
   if (isProcessRunning) return;
   isProcessRunning = true;
 
   const processArguments: string[] = [path.join(__dirname, fileToStart), ...process.argv.slice(2)];
-  const childProcess = spawn(process.argv[0], processArguments, {
+  const childProcess: ChildProcess = spawn(process.argv[0], processArguments, {
     stdio: ['inherit', 'inherit', 'inherit', 'ipc'],
   });
 
-  childProcess.on('message', (data) => {
+  childProcess.on('message', (data: any) => {
     console.log('[MESSAGE RECEIVED]', data);
     switch (data) {
       case 'reset':
@@ -27,11 +27,11 @@ function startProcess(fileToStart: string): void {
     }
   });
 
-  childProcess.on('exit', (code) => {
+  childProcess.on('exit', (code: number | null) => {
     isProcessRunning = false;
     console.error('Process exited with code:', code);
     startProcess(fileToStart);
   });
 }
 
-startProcess("src")
+startProcess("src");

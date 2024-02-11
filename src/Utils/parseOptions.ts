@@ -1,24 +1,18 @@
-function or(...args: any[]): any {
+function or<T>(...args: (T | undefined)[]): T | undefined {
   for (let arg of args) {
-    if (arg) return arg;
+    if (arg !== undefined) return arg;
   }
-  return args[args.length - 1];
+  return undefined;
 }
 
-interface OptionsArgs {
-  [key: string]: any;
-}
-
-interface Args {
-  [key: string]: any;
-}
-
-export default function parseOptions(optionsArgs: OptionsArgs = {}, args: Args = {}): OptionsArgs {
-  let options: OptionsArgs = {};
-  let entries = Object.entries(optionsArgs);
-  for (let i = 0; i < Object.keys(optionsArgs).length; i++) {
-    let [key, val] = entries[i];
-    options[key] = or(args[key], val);
+export default function parseOptions<T extends Record<string, any>>(
+  optionsArgs: T,
+  args: Partial<T> = {}
+): T {
+  const options: T = {} as T;
+  const keys = Object.keys(optionsArgs) as (keyof T)[];
+  for (let key of keys) {
+    options[key] = or(args[key], optionsArgs[key]) as T[keyof T];
   }
   return options;
 }
