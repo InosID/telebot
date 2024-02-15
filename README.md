@@ -7,6 +7,7 @@
 > apt install git nodejs
 
 > git clone https://github.com/InosID/telebot
+> cd telebot
 > npm i && npm i typescript -g
 > npm run build
 ```
