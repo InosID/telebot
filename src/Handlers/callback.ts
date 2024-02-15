@@ -1,46 +1,69 @@
+import { findCommand } from '../Utils';
+import { Bot, Command, User } from '../Types';
 import '../../settings';
 
-interface Message {
-  callbackQuery: {
-    data: string;
-  };
-}
+const commands: Record<string, Command> = global.attr as Record<string, Command>;
 
-interface Bot {
-  [key: string]: any; // Define bot object properties as needed
-}
-
-interface Command {
-  run: (context: { m: Message; bot: Bot }, attributes: { query: string }) => Promise<void>;
-  alias: string[];
-}
-
-export default async function Callback(m: { callbackQuery: { data: string } }, bot: Bot, commandMap: Map<string, Command>): Promise<void> {
-  const data: string = m.callbackQuery.data;
+export async function Callback(m: any, bot: Bot): Promise<void> {
+  const message: { callbackQuery: { data: string } } = m;
+  const data: string = message.callbackQuery.data;
+  console.log(data);
+  
   const isMultiPrefix: boolean = !!process.env.MULTI_PREFIX?.match(/true|ya|y(es)?/);
   const prefix: string = isMultiPrefix ? data[0] : process.env.PREFIX || '';
   const cleanData: string = data.replace(prefix, '');
   const query: string = cleanData.trim().split(/ +/).slice(1).join(' ');
+  const user: User = getUser(m.update.callback_query.from);
   const commandName: string | undefined = cleanData.trim().split(/ +/).shift()?.toLowerCase();
+  const userId = m.update.callback_query.from.id;
+  const args = data.trim().split(/ +/);
+  const messageId = m.update.callback_query.message.message_id;
 
-  const cmd: Command | undefined =
-    commandMap.get(commandName || '') ||
-    [...commandMap.values()].find((cmd: Command) =>
-      cmd.alias.find((alias: string) => alias.toLowerCase() === commandName)
-    ) ||
-    commandMap.get(data.trim().split(/ +/).shift()?.toLowerCase() || '') ||
-    [...commandMap.values()].find((cmd: Command) =>
-      cmd.alias.find((alias: string) => alias.toLowerCase() === data.trim().split(/ +/).shift()?.toLowerCase() || '')
-    );
+  let command: string = '';
+  const trimmedData: string = cleanData.trim();
+  const splitData: string[] = trimmedData.split(" ");
+
+  if (splitData.length > 0) {
+    command = splitData.shift()?.toLowerCase() ?? '';
+  }
+
+  const cmd: Command | false = findCommand(commands, "alias", command);
 
   if (!cmd) return;
 
   try {
     await cmd.run(
-      { m, bot },
-      { query }
+      {
+        m,
+        bot
+      },
+      {
+        query,
+        commands,
+        user,
+        userId,
+        isUrl,
+        args,
+        messageId
+      }
     );
   } catch (error) {
     console.error(error);
   }
+}
+
+function getUser(user: User): User {
+  try {
+    const lastName = user["last_name"] || "";
+    const fullName = user.first_name + " " + lastName;
+    user["full_name"] = fullName.trim();
+    return user;
+  } catch (error) {
+    throw error;
+  }
+}
+
+function isUrl(url: string): RegExpMatchArray | null {
+  const urlPattern = new RegExp(/https?:\/\/(www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&/=]*)/, "gi");
+  return url.match(urlPattern);
 }

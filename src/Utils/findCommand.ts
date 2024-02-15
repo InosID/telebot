@@ -1,4 +1,4 @@
-export default function findCommand(obj: { [key: string]: any }, key: string, value: any): any | false {
+export function findCommand(obj: { [key: string]: any }, key: string, value: any): any | false {
   let result: any | false;
   
   const recursiveSearch = (obj: { [key: string]: any }) => {

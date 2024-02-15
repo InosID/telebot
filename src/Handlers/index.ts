@@ -1,7 +1,2 @@
-import Callback from "./callback";
-import Message from "./Message";
-
-export {
-  Callback,
-  Message
-};
+export * from './Message';
+export * from './Callback';

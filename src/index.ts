@@ -38,10 +38,10 @@ const bot: Telegraf<Context<Update>> = new Telegraf<Context<Update>>(TOKEN);
 
 function connect(): void {
   bot.on("callback_query", function(m) {
-    require('./Handlers').Callback(m, bot, global.attr);
+    require('./Handlers').Callback(m, bot);
   });
   bot.on("message", function(m) {
-    require('./Handlers').Message(m, bot, global.attr);
+    require('./Handlers').Message(m, bot);
   });
   bot.launch({
     dropPendingUpdates: true,

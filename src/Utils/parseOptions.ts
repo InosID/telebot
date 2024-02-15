@@ -5,7 +5,7 @@ function or<T>(...args: (T | undefined)[]): T | undefined {
   return undefined;
 }
 
-export default function parseOptions<T extends Record<string, any>>(
+export function parseOptions<T extends Record<string, any>>(
   optionsArgs: T,
   args: Partial<T> = {}
 ): T {
