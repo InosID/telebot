@@ -12,7 +12,6 @@ export function youtube(
     [{ text: "Batalkan", callback_data: "/youtube cancel" }],
   ];
 
-  // Define URL pattern for YouTube videos
   const urlPattern = /(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})(?:\?si=([\w-]+))?/;
 
   const sendReply = (
@@ -29,7 +28,6 @@ export function youtube(
     }
   };
 
-  // Check if m.text is a valid URL before further processing
   if (!args[0] || !isUrl(args[0])) {
     return sendReply(
       "Anda tidak memberikan URL yang valid, silakan kirim ulang URL YouTube.",
@@ -38,7 +36,7 @@ export function youtube(
   }
 
   const url: string = args[0];
-  const match = url.match(urlPattern); // Menggunakan urlPattern yang telah didefinisikan sebelumnya
+  const match = url.match(urlPattern);
   const videoId: string | null = match?.[1] ?? null;
 
   if (!args[0].includes("://youtu") || !videoId) {
