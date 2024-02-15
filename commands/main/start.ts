@@ -15,7 +15,7 @@ const template: Template = {
 export default {
   alias: ["menu", "help"],
   category: "main",
-  async run({ m }: RunParams, { commands }: Attributes) {
+  async run({ m }: RunParams, { commands }: Attributes): Promise<void> {
     const categories: Record<string, string[]> = {};
 
     for (const command in commands) {
