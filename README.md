@@ -1,13 +1,20 @@
 ## Telegram Bot
 
-<!--
 ### How to install?
 
-[x] Termux/Ubuntu/Linux
-
-first, install the requirements and clone this repo.
 ```bash
-> apt install git -y
+# if you are using windows, just skip this step
+> apt install git nodejs
+
 > git clone https://github.com/InosID/telebot
+> npm i && npm i typescript -g
+> npm run build
 ```
--->
+
+## How to start?
+
+```bash
+> node .
+# or
+> npm start
+```
