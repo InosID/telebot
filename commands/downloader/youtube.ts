@@ -27,10 +27,6 @@ export default {
 
     const handleAudio = async (): Promise<void> => {
       cancelRequest();
-      m.editMessageReplyMarkup({}, {
-        chat_id: chatId,
-        message_id: m.update.callback_query.message.message_id
-      });
       m.reply('Audio telah dipilih. Mohon tunggu, audio sedang dikirim...');
       const res = await ytmp3(args[2]);
       const { url } = res;
@@ -42,10 +38,6 @@ export default {
 
     const handleVideo = async (): Promise<void> => {
       cancelRequest();
-      m.editMessageReplyMarkup({}, {
-        chat_id: chatId,
-        message_id: m.update.callback_query.message.message_id
-      });
       m.reply('Video telah dipilih. Mohon tunggu, video sedang dikirim...');
       const res = await ytmp4(args[2]);
       const { url } = res;
@@ -61,14 +53,10 @@ export default {
           cancelRequest();
           break;
         case 'audio':
-          if (onRequest[userId]) {
-            handleAudio();
-          }
+          handleAudio();
           break;
         case 'video':
-          if (onRequest[userId]) {
-            handleVideo();
-          }
+          handleVideo();
           break;
         default:
           if (onRequest[userId]) {

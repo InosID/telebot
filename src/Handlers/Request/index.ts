@@ -10,7 +10,7 @@ export function handleRequest(m: any, bot: Bot, userId: string, isUrl: any, args
 
     switch (command) {
       case 'youtube':
-        require('./youtube').youtube(m, isUrl, args, messageId);
+        require('./youtube').youtube(m, isUrl, args);
         delete bot.onRequest[userId];
         break;
     }
