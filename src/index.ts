@@ -1,54 +1,83 @@
-import '../settings';
+import { LOGGER } from '../settings';
+import { CommandAttr } from './Interfaces/global';
 import fs from 'fs';
 import path from 'path';
 import { Context, Telegraf } from 'telegraf';
 import { Update } from 'telegraf/typings/core/types/typegram';
-import { Command } from './Types/global';
+import { loadDatabase } from './Utils';
 
 global.attr = {};
 
 async function loadCommands(): Promise<void> {
   const commandsPath = "./commands";
   const plugins = fs.readdirSync(commandsPath);
+
   for (const plugin of plugins) {
     if (!/\.js$/g.test(plugin)) {
-      const commandFiles = fs
-        .readdirSync(path.join(commandsPath, plugin))
+      const commandFiles = fs.readdirSync(path.join(commandsPath, plugin))
         .filter((file) => file.endsWith(".js"));
+
       for (const filename of commandFiles) {
         const pathFiles = path.join(commandsPath, plugin, filename);
+
         try {
-          const commandModule = await import(`../${pathFiles}`);
-          const command: Command = commandModule.default;
+          const commandModule: CommandAttr = await import(`../${pathFiles}`);
+          const command = commandModule.default;
           global.attr[`${filename.replace('.js', '')}`] = command;
         } catch (error: any) {
-          console.error(
-            `Error loading command file ${pathFiles}: ${error.message}`
-          );
+          console.error(`Error loading command file ${pathFiles}: ${error.message}`);
         }
       }
     }
   }
 }
 
-loadCommands();
+async function connect(bot: Telegraf<Context<Update>>, token: string): Promise<void> {
+  try {
+    console.log(LOGGER.connection.start.replace("%botname", (await bot.telegram.getMe()).first_name));
 
-const TOKEN: string = process.env.TOKEN || "";
-const bot: Telegraf<Context<Update>> = new Telegraf<Context<Update>>(TOKEN);
+    bot.on("callback_query", (m) => {
+      require('./Handlers').Callback(m, bot, LOGGER);
+    });
 
-function connect(): void {
-  bot.on("callback_query", function(m) {
-    require('./Handlers').Callback(m, bot);
-  });
-  bot.on("message", function(m) {
-    require('./Handlers').Message(m, bot);
-  });
-  bot.launch({
-    dropPendingUpdates: true,
-  });
+    bot.on("message", (m) => {
+      require('./Handlers').Message(m, bot, LOGGER);
+    });
+
+    bot.launch({
+      dropPendingUpdates: true,
+    });
+
+    process.once('SIGINT', () => bot.stop('SIGINT'));
+    process.once('SIGTERM', () => bot.stop('SIGTERM'));
+  } catch (error) {
+    console.error('Error occurred:', error);
+  }
 }
 
-connect();
+async function main(): Promise<void> {
+  try {
+    await loadCommands();
 
-process.once('SIGINT', () => bot.stop('SIGINT'));
-process.once('SIGTERM', () => bot.stop('SIGTERM'));
+    await loadDatabase();
+    if (global.db) {
+      let interval = setInterval(async function() {
+        if (global.db.data) await global.db.write();
+      }, 5 * 1000);
+    }
+
+    const TOKEN: string | undefined = process.env.TOKEN;
+
+    if (TOKEN === undefined || TOKEN.match(/( |BOT_TOKEN)/)) {
+      console.log(LOGGER.connection.error.invalid_token);
+      return;
+    }
+
+    const bot: Telegraf<Context<Update>> = new Telegraf<Context<Update>>(TOKEN ?? '');
+    await connect(bot, TOKEN);
+  } catch (error) {
+    console.error('Error occurred:', error);
+  }
+}
+
+main();
