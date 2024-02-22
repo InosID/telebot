@@ -1,23 +1,20 @@
-export function findCommand(obj: { [key: string]: any }, key: string, value: any): any | false {
-  let result: any | false;
-  
-  const recursiveSearch = (obj: { [key: string]: any }) => {
+export function findCommand(obj: Record<string, any>, key: string, value: any): any | false {
+  let result: any | false = false;
+
+  const recursiveSearch = (obj: Record<string, any>) => {
     if (!obj || typeof obj !== "object") {
       return;
     }
-    if (obj[key]?.includes(value)) {
+    if (obj[key] && (obj[key] === value || (Array.isArray(obj[key]) && obj[key].includes(value)))) {
       result = obj;
     }
-    Object.keys(obj).forEach((k) => {
-      recursiveSearch(obj[k]);
-    });
+    for (const prop in obj) {
+      if (typeof obj[prop] === 'object') {
+        recursiveSearch(obj[prop]);
+      }
+    }
   };
 
   recursiveSearch(obj);
-  if (result) {
-    return result;
-  }
-  
-  const searchByName = obj[value];
-  return searchByName ? searchByName : false;
+  return result;
 }
