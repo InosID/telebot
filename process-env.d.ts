@@ -6,6 +6,7 @@ declare global {
       TOKEN: string;
       PREFIX: string;
       MULTI_PREFIX: string;
+      MONGO_URI: string;
     }
   }
 }
