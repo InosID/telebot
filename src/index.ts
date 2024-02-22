@@ -9,21 +9,21 @@ import { loadDatabase } from './Utils';
 global.attr = {};
 
 async function loadCommands(): Promise<void> {
-  const commandsPath = "./commands";
+  const commandsPath = path.join(__dirname, "../commands");
   const plugins = fs.readdirSync(commandsPath);
 
   for (const plugin of plugins) {
     if (!/\.js$/g.test(plugin)) {
       const commandFiles = fs.readdirSync(path.join(commandsPath, plugin))
-        .filter((file) => file.endsWith(".js"));
+        .filter((file) => file.endsWith('.js'));
 
       for (const filename of commandFiles) {
         const pathFiles = path.join(commandsPath, plugin, filename);
 
         try {
-          const commandModule: CommandAttr = await import(`../${pathFiles}`);
+          const commandModule: CommandAttr = await import(`${pathFiles}`);
           const command = commandModule.default;
-          global.attr[`${filename.replace('.js', '')}`] = command;
+          global.attr[filename.replace('.js', '')] = command;
         } catch (error: any) {
           console.error(`Error loading command file ${pathFiles}: ${error.message}`);
         }
@@ -31,6 +31,8 @@ async function loadCommands(): Promise<void> {
     }
   }
 }
+
+
 
 async function connect(bot: Telegraf<Context<Update>>, token: string): Promise<void> {
   try {
