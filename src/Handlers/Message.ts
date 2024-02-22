@@ -1,50 +1,60 @@
-import { Bot, Command, Message, User } from '../Types';
+import { Command } from '../Interfaces';
+import { Context, Telegraf } from 'telegraf';
 import { findCommand } from '../Utils';
-import '../../settings';
+import { Update } from 'telegraf/typings/core/types/typegram';
+import { translate } from '../Helpers';
+import { handleRequest } from './Request';
 
 const commands: Record<string, Command> = global.attr as Record<string, Command>;
 
-export async function Message(m: any, bot: Bot): Promise<void> {
-  const message: Message = m.message;
-  const text: string = (message.text || message.caption || '') as string;
+export async function Message(
+  m: any, 
+  bot: Telegraf<Context<Update>>, 
+  LOGGER: any
+): Promise<void> {
+  const message = m.message;
+  const { text: rawText, caption } = message;
+  const text: string = rawText || caption || '';
   const isMultiPrefix: boolean = !!process.env.MULTI_PREFIX?.match(/true|ya|y(es)?/);
-  const prefix: string = isMultiPrefix ? (text.match(/^[°•π÷×¶∆£¢€¥®™�✓_=|~!?#/$%^&.+-,\\\©^]/gi) ?? ['-'])[0] : process.env.PREFIX ?? '-';
-  const user: User = getUser(m.from);
+  const prefix: string = isMultiPrefix ? (text.match(/^[°•π÷×¶∆£¢€¥®™�✓_=|~!?#/$%^&.+-,\©^]/gi) ?? ['-'])[0] : process.env.PREFIX ?? '-';
+  const user = getUser(message.from);
   const args: string[] = text.trim().split(/ +/);
-  const messageId = m.message.message_id;
+  const messageId: number | undefined = message.message_id;
   const cleanData: string = text.replace(new RegExp(`^${prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`), '');
   const query: string = cleanData.trim().split(/ +/).slice(1).join(' ');
-  const isPrivate = m.chat.type == 'private';
-  const userId = m.message.from.id;
+  const isPrivate: boolean = message.chat.type === 'private';
+  const chatId: number | undefined = message.chat.id;
+  const userId: number = message.from.id;
+  const username: string = message.from.username ?? message.from.first_name ?? "";
+  const groupname: string = !isPrivate ? (message.chat.title ?? "") : "";
+  const owners: string[] = ["awacherry"];
+  const isOwner: boolean = owners.includes(user.username);
 
   const messageTypes: string[] = ['photo', 'video', 'audio', 'sticker', 'contact', 'location', 'document', 'animation'];
-  let typeMessage: string = text.substr(0, 50).replace(/\n/g, '');
 
-  for (const messageType of messageTypes) {
-    if (message.hasOwnProperty(messageType)) {
-      typeMessage = messageType.charAt(0).toUpperCase() + messageType.slice(1);
-      break;
-    }
-  }
+  const type: string = messageTypes
+    .filter(messageType => message.hasOwnProperty(messageType))
+    .join(', ');
 
-  let command: string = '';
-  const trimmedData: string = cleanData.trim();
-  const splitData: string[] = trimmedData.split(" ");
+  const [command, ...restArgs] = cleanData.trim().split(" ");
+  const lowerCaseCommand = command?.toLowerCase();
+  const cmd: Command | false = findCommand(commands, "alias", lowerCaseCommand) || findCommand(commands, "name", lowerCaseCommand);
 
-  if (splitData.length > 0) {
-    command = splitData.shift()?.toLowerCase() ?? '';
-  }
-
-  const cmd: Command | false = findCommand(commands, "alias", command);
+  async function l(text: string): Promise<string> {
+    return translate(text, m.message.from.language_code);
+  };
 
   if (!cmd) {
-    require('./Request').handleRequest(m, bot, userId, isUrl, args, messageId)
+    handleRequest(m, bot, userId, isUrl, args, messageId, query);
+    return;
   }
   
-  if (!cmd) return;
-  if (!isPrivate && cmd?.isPrivate) {
-    return bot.reply(message.chat.id, 'Fitur ini hanya dapat digunakan dalam private chat');
+  if (cmd.isPrivate && !isPrivate) {
+    await m.reply(chatId, await l('Fitur ini hanya dapat digunakan dalam private chat'));
+    return;
   }
+
+  if (cmd.isOwner && !isOwner) return;
 
   try {
     await cmd.run(
@@ -53,32 +63,38 @@ export async function Message(m: any, bot: Bot): Promise<void> {
         bot
       },
       {
+        text,
         query,
         commands,
         user,
         userId,
         isUrl,
         args,
-        messageId
+        messageId,
+        type,
+        message,
+        l
       }
     );
+    const received = LOGGER.command.receive;
+    const logMessage = isPrivate ? received.private : received.group;
+    console.log(logMessage.replace('%gcname', groupname).replace('%username', username).replace('%cmd', args.join(' ')));
   } catch (error) {
     console.error(error);
   }
 }
 
-function getUser(user: User): User {
+function getUser(user: any) {
   try {
-    const lastName = user["last_name"] || "";
-    const fullName = user.first_name + " " + lastName;
-    user["full_name"] = fullName.trim();
-    return user;
+    const { first_name, last_name } = user;
+    const fullName = `${first_name} ${last_name || ''}`.trim();
+    return { ...user, full_name: fullName };
   } catch (error) {
     throw error;
   }
 }
 
 function isUrl(url: string): RegExpMatchArray | null {
-  const urlPattern = new RegExp(/https?:\/\/(www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&/=]*)/, "gi");
+  const urlPattern = new RegExp(/https?:\/\/(www\.)?[a-zA-Z0-9-]+\.[a-zA-Z0-9()]{1,6}([-a-zA-Z0-9()@:%_+.~#?&/=]*)/, "gi");
   return url.match(urlPattern);
 }
